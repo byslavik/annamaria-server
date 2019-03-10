@@ -7,10 +7,11 @@ var jwt = require('jsonwebtoken');
 var router = express.Router();
 var User = require("../models/user");
 var Item = require("../models/item");
+var getDateFromTo = require("../helpers/get-from-to-dates")
 
 router.post('/signup', function(req, res) {
   if (!req.body.username || !req.body.password) {
-    res.json({success: false, msg: 'Please pass username and password.'});
+    res.json({success: false, message: 'Please pass username and password.'});
   } else {
     var newUser = new User({
       username: req.body.username,
@@ -19,9 +20,9 @@ router.post('/signup', function(req, res) {
     // save the user
     newUser.save(function(err) {
       if (err) {
-        return res.json({success: false, msg: 'Username already exists.'});
+        return res.json({success: false, message: 'Username already exists.'});
       }
-      res.json({success: true, msg: 'Successful created new user.'});
+      res.json({success: true, message: 'Successful created new user.'});
     });
   }
 });
@@ -34,7 +35,7 @@ router.post('/signin', function(req, res) {
     if (err) throw err;
 
     if (!user) {
-      res.status(401).send({success: false, type: 'danger', msg: 'Пользователь не найден'});
+      res.status(401).send({success: false, type: 'error', message: 'Пользователь не найден'});
     } else {
       // check if password matches
       user.comparePassword(req.body.password, function (err, isMatch) {
@@ -44,31 +45,47 @@ router.post('/signin', function(req, res) {
           // return the information including token as JSON
           res.json({success: true, token: 'JWT ' + token });
         } else {
-          res.status(401).send({success: false, alertType: 'danger', msg: 'Пароль не верен'});
+          res.status(401).send({success: false, type: 'error', message: 'Пароль не верен'});
         }
       });
     }
   });
 });
 
-router.get('/items', function(req, res) {
-  Item.find({}, function (err, items) {
+router.get('/items', function(req, res, next) {
+  const { date, type } = req.query
+  const dateQuery = getDateFromTo(date)
+  const primerkaQuery = {
+    primerkaDate: dateQuery,
+    type: type
+  }
+
+  const reservQuery = {
+    reservDate: dateQuery,
+    type: type
+  }
+
+  Item.find(type == 1 ? reservQuery : primerkaQuery, {}, {
+    sort:{
+        primerkaDate: 1
+    }
+}, function (err, items) {
     if (err) return next(err);
     res.json(items);
   });
 });
 
-router.post('/item/delete', passport.authenticate('jwt', { session: false }), function(req, res) {
+router.delete('/item/delete', passport.authenticate('jwt', { session: false }), function(req, res) {
   var token = getToken(req.headers);
-  console.log(token)
+
   if (token) {
     Item.remove({ _id: req.body.id }, function (err, item) {
       if (err) return handleError(err);
 
-      res.json({ success: true, alertType: 'success', msg: 'Удаление прошло успешно'});
+      res.json({ success: true, type: 'warning', message: 'Удаление прошло успешно'});
     });
   } else {
-    return res.status(403).send({success: false, alertType: 'danger', msg: 'Вы не залогинены'});
+    return res.status(403).send({success: false, type: 'error', message: 'Вы не залогинены'});
   }
 });
 
@@ -81,16 +98,16 @@ router.post('/item/add', passport.authenticate('jwt', { session: false}), functi
 
     newItem.save(function(err) {
       if (err) {
-        return res.json({success: false, alertType: 'danger', msg: 'Произошла ошибка'});
+        return res.json({success: false, type: 'error', message: 'Произошла ошибка'});
       }
-      res.json({success: true, alertType: 'success', msg: 'Добавление прошло успешно'});
+      res.json({success: true, type: 'success', message: 'Добавление прошло успешно'});
     });
   } else {
-    return res.status(403).send({success: false, alertType: 'danger', msg: 'Вы не залогинены'});
+    return res.status(403).send({success: false, type: 'error', message: 'Вы не залогинены'});
   }
 });
 
-router.post('/item/edit', passport.authenticate('jwt', { session: false }), function(req, res) {
+router.patch('/item/edit', passport.authenticate('jwt', { session: false }), function(req, res) {
   var token = getToken(req.headers);
   if (token) {
     Item.findById(req.body._id, function (err, item) {
@@ -99,11 +116,11 @@ router.post('/item/edit', passport.authenticate('jwt', { session: false }), func
       item.set(req.body);
       item.save(function (err, updatedItem) {
         if (err) return handleError(err);
-        res.json({ success: true, alertType: 'success', msg: 'Обновление прошло успешно'});
+        res.json({ success: true, type: 'success', message: 'Обновление прошло успешно'});
       });
     });
   } else {
-    return res.status(403).send({success: false, alertType: 'danger', msg: 'Вы не залогинены'});
+    return res.status(403).send({success: false, type: 'error', message: 'Вы не залогинены'});
   }
 });
 

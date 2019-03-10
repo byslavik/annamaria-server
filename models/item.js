@@ -7,8 +7,14 @@ var ItemSchema = new Schema({
   clientName: String,
   primerkaDate: Date,
   eventDate: Date,
+  reservDate: Date,
   isVidacha: Boolean,
-  comments: String
+  placeholder: Boolean,
+  comments: String,
+  type: Number,
+  zalog: Number,
+  prepaid: Number,
+  prise: Number
 });
 
 module.exports = mongoose.model('Item', ItemSchema);
