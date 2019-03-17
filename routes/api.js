@@ -55,20 +55,28 @@ router.post('/signin', function(req, res) {
 router.get('/items', function(req, res, next) {
   const { date, type } = req.query
   const dateQuery = getDateFromTo(date)
+
   const primerkaQuery = {
     primerkaDate: dateQuery,
     type: type
   }
-
-  const reservQuery = {
-    reservDate: dateQuery,
-    type: type
+  const primerkaSort = {
+    primerkaDate: 1
   }
 
-  Item.find(type == 1 ? reservQuery : primerkaQuery, {}, {
-    sort:{
-        primerkaDate: 1
-    }
+  const reservQuery = {
+    eventDate: dateQuery,
+    type: type
+  }
+  const reservSort = {
+    eventDate: 1
+  }
+
+  const query = type == 1 ? reservQuery : primerkaQuery
+  const sort = type === 1 ? reservSort : primerkaSort
+
+  Item.find(query, {}, {
+    sort
 }, function (err, items) {
     if (err) return next(err);
     res.json(items);

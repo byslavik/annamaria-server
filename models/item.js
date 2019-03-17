@@ -8,6 +8,7 @@ var ItemSchema = new Schema({
   primerkaDate: Date,
   eventDate: Date,
   reservDate: Date,
+  returnDate: Date,
   isVidacha: Boolean,
   placeholder: Boolean,
   comments: String,
