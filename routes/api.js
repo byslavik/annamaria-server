@@ -7,7 +7,9 @@ var jwt = require('jsonwebtoken');
 var router = express.Router();
 var User = require("../models/user");
 var Item = require("../models/item");
+var Comment = require("../models/comment");
 var getDateFromTo = require("../helpers/get-from-to-dates")
+var generateDateTimeStr = require("../helpers/generate-date-time-str")
 
 router.post('/signup', function(req, res) {
   if (!req.body.username || !req.body.password) {
@@ -31,7 +33,6 @@ router.post('/signin', function(req, res) {
   User.findOne({
     username: req.body.username
   }, function(err, user) {
-    console.log(req.body)
     if (err) throw err;
 
     if (!user) {
@@ -57,31 +58,55 @@ router.get('/items', function(req, res, next) {
   const dateQuery = getDateFromTo(date)
 
   const primerkaQuery = {
-    primerkaDate: dateQuery,
+    primerkaDateStr: dateQuery,
     type: type
   }
   const primerkaSort = {
-    primerkaDate: 1
+    primerkaDateStr: 1
   }
 
   const reservQuery = {
-    eventDate: dateQuery,
+    eventDateStr: dateQuery,
     type: type
   }
   const reservSort = {
-    eventDate: 1
+    eventDateStr: 1
   }
 
-  const query = type == 1 ? reservQuery : primerkaQuery
-  const sort = type === 1 ? reservSort : primerkaSort
+  const allDateQuery = {
+    $or: [
+      {
+        primerkaDateStr: dateQuery,
+      },
+      {
+        reservDateStr: dateQuery,
+      },
+      {
+        returnDateStr: dateQuery,
+      }
+    ]
+  }
+
+  let query = allDateQuery
+  let sort = {}
+
+  if (type === '1') {
+    query = reservQuery
+    sort = reservSort
+  }
+
+  if (type === '0') {
+    query = primerkaQuery
+    sort = primerkaSort
+  }
 
   Item.find(query, {}, {
-    sort
-}, function (err, items) {
-    if (err) return next(err);
-    res.json(items);
+      sort
+  }, function (err, items) {
+      if (err) return next(err);
+      res.json(items);
+    });
   });
-});
 
 router.delete('/item/delete', passport.authenticate('jwt', { session: false }), function(req, res) {
   var token = getToken(req.headers);
@@ -100,9 +125,16 @@ router.delete('/item/delete', passport.authenticate('jwt', { session: false }), 
 router.post('/item/add', passport.authenticate('jwt', { session: false}), function(req, res) {
   var token = getToken(req.headers);
   if (token) {
-    var newItem = new Item({
-      ...req.body
-    });
+    const body = req.body
+    const itemToSave  = {
+      ...body,
+      primerkaDateStr: generateDateTimeStr(body.primerkaDate),
+      eventDateStr: generateDateTimeStr(body.eventDate),
+      reservDateStr: generateDateTimeStr(body.reservDate),
+      returnDateStr: generateDateTimeStr(body.returnDate),
+    }
+    var newItem = new Item(itemToSave);
+    console.log(newItem)
 
     newItem.save(function(err) {
       if (err) {
@@ -120,8 +152,16 @@ router.patch('/item/edit', passport.authenticate('jwt', { session: false }), fun
   if (token) {
     Item.findById(req.body._id, function (err, item) {
       if (err) return handleError(err);
-    
-      item.set(req.body);
+      const body = req.body
+      const itemToSave  = {
+        ...body,
+        primerkaDateStr: generateDateTimeStr(body.primerkaDate),
+        eventDateStr: generateDateTimeStr(body.eventDate),
+        reservDateStr: generateDateTimeStr(body.reservDate),
+        returnDateStr: generateDateTimeStr(body.returnDate),
+      }
+      console.log(itemToSave)
+      item.set(itemToSave);
       item.save(function (err, updatedItem) {
         if (err) return handleError(err);
         res.json({ success: true, type: 'success', message: 'Обновление прошло успешно'});
@@ -138,6 +178,55 @@ router.get('/items/:id', function(req, res, next) {
       if (err) return next(err);
       res.json(item);
     });
+});
+
+router.get('/comment', function(req, res, next) {
+  const { date } = req.query
+  const dateQuery = getDateFromTo(date)
+
+  const query = {
+    date: dateQuery
+  }
+
+  Comment.find(query, function (err, items) {
+    if (err) return next(err);
+    res.json(items);
+  });
+});
+
+router.patch('/comment', passport.authenticate('jwt', { session: false}), function(req, res) {
+  var token = getToken(req.headers);
+  if (token) {
+    Comment.findById(req.body._id, function (err, item) {
+      if (err) return handleError(err);
+      const body = req.body
+      
+      item.set(body);
+      item.save(function (err, updatedItem) {
+        if (err) return handleError(err);
+        res.json({ success: true, type: 'success', message: 'Обновление прошло успешно'});
+      });
+    });
+  } else {
+    return res.status(403).send({success: false, type: 'error', message: 'Вы не залогинены'});
+  }
+});
+
+router.post('/comment', passport.authenticate('jwt', { session: false}), function(req, res) {
+  var token = getToken(req.headers);
+  if (token) {
+    const body = req.body
+    var newItem = new Comment(body);
+
+    newItem.save(function(err) {
+      if (err) {
+        return res.json({success: false, type: 'error', message: 'Произошла ошибка'});
+      }
+      res.json({success: true, type: 'success', message: 'Добавление заметки прошло успешно'});
+    });
+  } else {
+    return res.status(403).send({success: false, type: 'error', message: 'Вы не залогинены'});
+  }
 });
 
 

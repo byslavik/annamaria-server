@@ -5,10 +5,19 @@ var ItemSchema = new Schema({
   dressIds: Array,
   clientPhone: String,
   clientName: String,
-  primerkaDate: Date,
-  eventDate: Date,
-  reservDate: Date,
-  returnDate: Date,
+
+  primerkaDate: Object,
+  primerkaDateStr: Date,
+
+  eventDate: Object,
+  eventDateStr: Date,
+
+  reservDate: Object,
+  reservDateStr: Date,
+
+  returnDate: Object,
+  returnDateStr: Date,
+
   isVidacha: Boolean,
   placeholder: Boolean,
   comments: String,
