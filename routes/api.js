@@ -53,13 +53,35 @@ router.post('/signin', function(req, res) {
   });
 });
 
+// router.get('/migrate', function(req, res) {
+//   Item.find({ type: 1 }, (err, items) => {
+//     items.forEach(prevItem => {
+//       Item.findById(prevItem._id, function (err, item) {
+//         if (err) return handleError(err);
+
+//         const itemToSave  = {
+//           ...prevItem,
+//           isPrimerkaDone: true,
+//           isVidachaDone: false,
+//           isReturnDone: false,
+//         }
+
+//         item.set(itemToSave);
+//         item.save(function (err, updatedItem) {
+//           if (err) return handleError(err);
+//         });
+//       });
+//     })
+//     res.json({ done: true })
+//   })
+// })
+
 router.get('/items', function(req, res, next) {
   const { date, type } = req.query
   const dateQuery = getDateFromTo(date)
 
   const primerkaQuery = {
-    primerkaDateStr: dateQuery,
-    type: type
+    primerkaDateStr: dateQuery
   }
   const primerkaSort = {
     primerkaDateStr: 1
@@ -67,7 +89,7 @@ router.get('/items', function(req, res, next) {
 
   const reservQuery = {
     eventDateStr: dateQuery,
-    type: type
+    isPrimerkaDone: true
   }
   const reservSort = {
     eventDateStr: 1
@@ -112,7 +134,7 @@ router.delete('/item/delete', passport.authenticate('jwt', { session: false }), 
   var token = getToken(req.headers);
 
   if (token) {
-    Item.remove({ _id: req.body.id }, function (err, item) {
+    Item.deleteOne({ _id: req.body.id }, function (err, item) {
       if (err) return handleError(err);
 
       res.json({ success: true, type: 'warning', message: 'Удаление прошло успешно'});
