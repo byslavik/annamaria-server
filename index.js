@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var passport = require('passport');
 var config = require('./config/database');
+var ErrorShema = require("./models/error");
 var cors = require('cors');
 var port = process.env.PORT || 8083;
 
@@ -51,9 +52,20 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  var newError = new ErrorShema({
+    date: Date.now(),
+    request: JSON.stringify({ url: req.path, query: req.query, body: req.body }),
+    err: JSON.stringify(err),
+  });
+
+  newError.save(function(err) {
+    if (err) {
+      res.status(403).send({success: false, type: 'error', message: 'Что-то пошло не так. '});
+    }
+
+    res.status(403).send({success: false, type: 'error', message: 'Что-то пошло не так. Ошибка сохранена. Обратитесь к администратору'});
+  });
+
 });
 
 app.listen(port)
