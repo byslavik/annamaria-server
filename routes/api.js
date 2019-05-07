@@ -1,5 +1,7 @@
 var mongoose = require('mongoose');
 var passport = require('passport');
+var path = require('path')
+var backup = require('mongodb-backup')
 var config = require('../config/database');
 require('../config/passport')(passport);
 var express = require('express');
@@ -200,6 +202,25 @@ router.get('/items/:id', function(req, res, next) {
       if (err) return next(err);
       res.json(item);
     });
+});
+
+
+router.get('/backup-db', function(req, res) {
+  var filename = `dump-${Date.now()}.tar`
+  var root = path.resolve(__dirname, '../backups')
+
+  backup({
+    uri: config.database,
+    root, 
+    tar: filename,
+    callback: function(err) {
+      if (err) {
+        console.error(err);
+      } else {
+        res.sendFile(filename, { root })
+      }
+    }
+  });
 });
 
 router.get('/comment', function(req, res, next) {
