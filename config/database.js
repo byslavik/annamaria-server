@@ -1,4 +1,4 @@
 module.exports = {
   'secret':'nodeauthsecret',
-  'database': 'mongodb://annamariauser:annamariapassword1@ds153495.mlab.com:53495/heroku_hclnpncv'
+  'database': 'mongodb+srv://annamariauser:annamariapassword1@cluster-hclnpncv.jrnaj.mongodb.net/heroku_hclnpncv?retryWrites=true&w=majority'
 };
